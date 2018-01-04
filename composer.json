@@ -1,0 +1,21 @@
+{
+  "name": "davidwofford/phpdarksky",
+  "description": "PhpDarkSky is a simple wrapper for making requests to the dark sky api - https://darksky.net/dev",
+  "keywords": ["api", "dark", "sky"],
+  "homepage": "https://github.com/davidwofford/PhpDarkSky",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "David Wofford",
+      "email": "dwoffordjr@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "DavidWofford\\PhpDarkSky\\": "src/"
+    }
+  },
+  "require": {
+    "php": "^7.0"
+  }
+}
