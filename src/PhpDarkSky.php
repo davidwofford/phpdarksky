@@ -28,7 +28,7 @@ final class PhpDarkSky
     /**
      * @const string Stores the array key for minutely items
      */
-    CONST MINUTELY_KEY = 'minutely';
+    const MINUTELY_KEY = 'minutely';
 
     /**
      * @const string Stores the array key for hourly items
