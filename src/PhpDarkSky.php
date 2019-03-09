@@ -8,48 +8,12 @@
 
 namespace DavidWofford\PhpDarkSky;
 
-final class PhpDarkSky
+use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\Exception\GuzzleException;
+
+final class PhpDarkSky implements PhpDarkSkyConstants
 {
-    /**
-     * @const string Stores the base url to call for the api
-     */
-    const API_URL = 'https://api.darksky.net/forecast/';
-
-    /**
-     * @const int Stores the timeout time for the api call
-     */
-    const TIMEOUT = 10;
-
-    /**
-     * @const string Stores the array key for current items
-     */
-    const CURRENT_KEY = 'currently';
-
-    /**
-     * @const string Stores the array key for minutely items
-     */
-    const MINUTELY_KEY = 'minutely';
-
-    /**
-     * @const string Stores the array key for hourly items
-     */
-    const HOURLY_KEY = 'hourly';
-
-    /**
-     * @const string Stores the array key for daily items
-     */
-    const DAILY_KEY = 'daily';
-
-    /**
-     * @const string Stores the array key for the alerts
-     */
-    const ALERTS_KEY = 'alerts';
-
-    /**
-     * @const string Stores the array key for the flags
-     */
-    const FLAGS_KEY = 'flags';
-
     /**
      * @var string The api key for calling the api
      */
@@ -76,17 +40,17 @@ final class PhpDarkSky
      * @param float $latitude the latitude for the location
      * @param float $longitude the longitude for the location
      * @param array $parameters the parameters to pass to the api
-     * @throws \Exception if any of the required parameters is missing an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function __construct(string $apiKey, float $latitude, float $longitude, array $parameters = [])
     {
         // If the API_KEY has not been set we cannot make calls to the api
         if ($apiKey === '' || $apiKey === null) {
-            throw new \Exception('api key is required', 1000);
+            throw new PhpDarkSkyException('api key is required', 1000);
         }
 
         if ($latitude === null || $longitude === null) {
-            throw new \Exception('latitude and longitude are required', 1001);
+            throw new PhpDarkSkyException('latitude and longitude are required', 1001);
         }
 
         $this->setUrl(self::API_URL . $apiKey);
@@ -95,12 +59,16 @@ final class PhpDarkSky
 
         $parameters = $this->filterParameters($parameters);
         $this->setParameters($parameters);
+
+        if (!defined('PHP_DARK_SKY_BYPASS_SSL')) {
+            define('PHP_DARK_SKY_BYPASS_SSL', false);
+        }
     }
 
     /**
      * Fetches and returns all forecast information for the chosen location
      * @return array the forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getForecast() : array
     {
@@ -110,87 +78,80 @@ final class PhpDarkSky
     /**
      * Fetches and returns the current forecast for the chosen location
      * @return array the current forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getCurrentForecast() : array
     {
         $data = $this->getForecast();
-
-        return isset($data[self::CURRENT_KEY]) ? $data[self::CURRENT_KEY] : [];
+        return $data[self::CURRENT_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the minutely forecast for the chosen location
      * @return array the minutely forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getMinutelyForecast() : array
     {
         $data = $this->getForecast();
-
-        return isset($data[self::MINUTELY_KEY]) ? $data[self::MINUTELY_KEY] : [];
+        return $data[self::MINUTELY_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the hourly forecast for the chosen location
      * @return array the hourly forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getHourlyForecast() : array
     {
         $data = $this->getForecast();
-
-        return isset($data[self::HOURLY_KEY]) ? $data[self::HOURLY_KEY] : [];
+        return $data[self::HOURLY_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the daily forecast for the chosen location
      * @return array the daily forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getDailyForecast() : array
     {
         $data = $this->getForecast();
-
-        return isset($data[self::DAILY_KEY]) ? $data[self::DAILY_KEY] : [];
+        return $data[self::DAILY_KEY] ?? [];
     }
 
     /**
      * Fetches and return the alerts for the current location
      * @return array the forecast alerts data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getForecastAlerts() : array
     {
         $data = $this->getForecast();
-
-        return isset($data[self::ALERTS_KEY]) ? $data[self::ALERTS_KEY] : [];
+        return $data[self::ALERTS_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the flags for the current location
      * @return array the forecast flags data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getForecastFlags() : array
     {
         $data = $this->getForecast();
-
-        return isset($data[self::FLAGS_KEY]) ? $data[self::FLAGS_KEY] : [];
+        return $data[self::FLAGS_KEY] ?? [];
     }
 
     /**
      * Fetches and returns time machine data
      * @param string $time
      * @return array
-     * @throws \Exception If an error is returned from the api or time has not been passed in an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getTimeMachine(string $time) : array
     {
         if ($time === '' || $time === null) {
-            throw new \Exception('time is required for time machine requests', 1002);
+            throw new PhpDarkSkyException('time is required for time machine requests', 1002);
         }
-
         return $this->callApi($time);
     }
 
@@ -198,90 +159,84 @@ final class PhpDarkSky
      * Fetches and returns the current forecast for the chosen location
      * @param string $time
      * @return array the current forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getCurrentTimeMachine(string $time) : array
     {
         $data = $this->getTimeMachine($time);
-
-        return isset($data[self::CURRENT_KEY]) ? $data[self::CURRENT_KEY] : [];
+        return $data[self::CURRENT_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the minutely forecast for the chosen location
      * @param string $time
      * @return array the minutely forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getMinutelyTimeMachine(string $time) : array
     {
         $data = $this->getTimeMachine($time);
-
-        return isset($data[self::MINUTELY_KEY]) ? $data[self::MINUTELY_KEY] : [];
+        return $data[self::MINUTELY_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the hourly time machine for the chosen location
      * @param string $time
      * @return array the hourly forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getHourlyTimeMachine(string $time) : array
     {
         $data = $this->getTimeMachine($time);
-
-        return isset($data[self::HOURLY_KEY]) ? $data[self::HOURLY_KEY] : [];
+        return $data[self::HOURLY_KEY] ?? [];
     }
 
     /**
      * Fetches and returns the daily time machine for the chosen location
      * @param string $time
      * @return array the daily forecast data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
     public function getDailyTimeMachine(string $time) : array
     {
         $data = $this->getTimeMachine($time);
-
-        return isset($data[self::DAILY_KEY]) ? $data[self::DAILY_KEY] : [];
+        return $data[self::DAILY_KEY] ?? [];
     }
 
     /**
      * Handles making calls to the api
-     * @param string $time the time
+     * @param string|null $time the time
      * @return array the array of data
-     * @throws \Exception If an error is returned from the api an exception is thrown
+     * @throws PhpDarkSkyException
      */
-    private function callApi(string $time = '') : array
+    private function callApi(?string $time = null) : array
     {
-        $time = $time === '' ? '' : ',' . $time;
+        $time = trim($time) === '' ? '' : ',' . $time;
         $queryString = $this->getQueryString();
         $parameters = $queryString === '' ? '' : '?' . $queryString;
 
-        $url = $this->getUrl() . '/' . $this->getLatitude() . ',' . $this->getLongitude() . $time . $parameters;
+        $client = new Client([
+            'base_uri'  => $this->getUrl(),
+            'timeout'   => self::TIMEOUT,
+            // This will bypass the ssl cert check, do not turn this on in production
+            'verify'    => !PHP_DARK_SKY_BYPASS_SSL
+        ]);
 
-        $curl = curl_init();
-        curl_setopt($curl, CURLOPT_URL, $url);
-        curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($curl, CURLOPT_POST, false);
-        curl_setopt($curl, CURLOPT_HTTPGET, true);
-        curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-        curl_setopt($curl, CURLOPT_TIMEOUT, self::TIMEOUT);
+        $uri = $this->getUrl() . '/' . $this->getLatitude() . ',' . $this->getLongitude() . $time;
+        $request = new Request('GET', $uri, [], $parameters);
+        try {
+            $response = $client->send($request);
 
-        if (!$returnData = curl_exec($curl)) {
-            throw new \Exception(curl_error($curl), curl_errno($curl));
-        } else {
-            $returnData = json_decode($returnData, true);
+            $returnData = json_decode($response->getBody()->getContents(), true);
 
-            // Make sure no error is present
             if (isset($returnData['error'])) {
-                throw new \Exception($returnData['error'], $returnData['code']);
+                throw new PhpDarkSkyException($returnData['error'], $returnData['code']);
             }
+
+            return $returnData;
+        } catch (GuzzleException $e) {
+            throw new PhpDarkSkyException($e->getMessage(), $e->getCode());
         }
-
-        curl_close($curl);
-
-        return $returnData;
     }
 
     /**
@@ -300,7 +255,7 @@ final class PhpDarkSky
         ];
 
         foreach ($parameters as $key => $value) {
-            if (in_array($key, $usable) && !is_array($value)) {
+            if (!is_array($value) && in_array($key, $usable, true)) {
                 $filteredParameters[$key] = $value;
             }
         }
