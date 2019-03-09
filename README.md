@@ -14,7 +14,7 @@ A simple wrapper for connecting to and pulling information from the [Dark Sky](h
 
 ## Requirements
 
-- PHP >= 7.0
+- PHP >= 7.2
 - [A Dark Sky api key](https://darksky.net/dev/register)
 
 ## Installation
@@ -24,7 +24,7 @@ A simple wrapper for connecting to and pulling information from the [Dark Sky](h
 To install through composer add the following line to your `composer.json` file:
 ```
     "require": {
-        "davidwofford/phpdarksky": "1.0.*"
+        "davidwofford/phpdarksky": "1.1.*"
     }
 ```
 or run this command
@@ -85,6 +85,13 @@ To get the time machine data for a location
 ```
 
 As with the forecast items above there is a method to get filtered down arrays for each of the array items that appear from this call as well.
+
+### Configuration
+If you are having issues with your ssl cert being denied locally you can add this define in your project to bypass the ssl cert check.
+
+`define('PHP_DARK_SKY_BYPASS_SSL', true);`
+
+**DO NOT TURN THIS ON IN PRODUCTION**
 
 ## Resources
 

@@ -15,7 +15,12 @@
       "DavidWofford\\PhpDarkSky\\": "src/"
     }
   },
+  "require-dev": {
+    "roave/security-advisories": "dev-master"
+  },
   "require": {
-    "php": "^7.0"
+    "php": ">=7.2",
+    "ext-json": "*",
+    "guzzlehttp/guzzle": "^6.3"
   }
 }
