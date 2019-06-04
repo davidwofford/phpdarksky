@@ -17,7 +17,7 @@ final class PhpDarkSky implements PhpDarkSkyConstants
     /**
      * @var string The api key for calling the api
      */
-    private $url;
+    private $apiKey;
 
     /**
      * @var float The latitude for the location to query
@@ -36,29 +36,27 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * PhpDarkSky constructor.
+     *
      * @param string $apiKey the api key for dark sky
      * @param float $latitude the latitude for the location
      * @param float $longitude the longitude for the location
      * @param array $parameters the parameters to pass to the api
+     *
      * @throws PhpDarkSkyException
      */
     public function __construct(string $apiKey, float $latitude, float $longitude, array $parameters = [])
     {
         // If the API_KEY has not been set we cannot make calls to the api
-        if ($apiKey === '' || $apiKey === null) {
+        if (trim($apiKey) === '') {
             throw new PhpDarkSkyException('api key is required', 1000);
         }
 
-        if ($latitude === null || $longitude === null) {
-            throw new PhpDarkSkyException('latitude and longitude are required', 1001);
-        }
-
-        $this->setUrl(self::API_URL . $apiKey);
-        $this->setLatitude($latitude);
-        $this->setLongitude($longitude);
+        $this->apiKey    = $apiKey;
+        $this->latitude  = $latitude;
+        $this->longitude = $longitude;
 
         $parameters = $this->filterParameters($parameters);
-        $this->setParameters($parameters);
+        $this->parameters = $parameters;
 
         if (!defined('PHP_DARK_SKY_BYPASS_SSL')) {
             define('PHP_DARK_SKY_BYPASS_SSL', false);
@@ -67,7 +65,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns all forecast information for the chosen location
+     *
      * @return array the forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getForecast() : array
@@ -77,7 +77,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the current forecast for the chosen location
+     *
      * @return array the current forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getCurrentForecast() : array
@@ -88,7 +90,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the minutely forecast for the chosen location
+     *
      * @return array the minutely forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getMinutelyForecast() : array
@@ -99,7 +103,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the hourly forecast for the chosen location
+     *
      * @return array the hourly forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getHourlyForecast() : array
@@ -110,7 +116,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the daily forecast for the chosen location
+     *
      * @return array the daily forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getDailyForecast() : array
@@ -121,7 +129,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and return the alerts for the current location
+     *
      * @return array the forecast alerts data
+     *
      * @throws PhpDarkSkyException
      */
     public function getForecastAlerts() : array
@@ -132,7 +142,9 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the flags for the current location
+     *
      * @return array the forecast flags data
+     *
      * @throws PhpDarkSkyException
      */
     public function getForecastFlags() : array
@@ -143,13 +155,16 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns time machine data
+     *
      * @param string $time
+     *
      * @return array
+     *
      * @throws PhpDarkSkyException
      */
     public function getTimeMachine(string $time) : array
     {
-        if ($time === '' || $time === null) {
+        if (trim($time) === '') {
             throw new PhpDarkSkyException('time is required for time machine requests', 1002);
         }
         return $this->callApi($time);
@@ -157,8 +172,11 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the current forecast for the chosen location
+     *
      * @param string $time
+     *
      * @return array the current forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getCurrentTimeMachine(string $time) : array
@@ -169,8 +187,11 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the minutely forecast for the chosen location
+     *
      * @param string $time
+     *
      * @return array the minutely forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getMinutelyTimeMachine(string $time) : array
@@ -181,8 +202,11 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the hourly time machine for the chosen location
+     *
      * @param string $time
+     *
      * @return array the hourly forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getHourlyTimeMachine(string $time) : array
@@ -193,8 +217,11 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Fetches and returns the daily time machine for the chosen location
+     *
      * @param string $time
+     *
      * @return array the daily forecast data
+     *
      * @throws PhpDarkSkyException
      */
     public function getDailyTimeMachine(string $time) : array
@@ -205,8 +232,11 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Handles making calls to the api
+     *
      * @param string|null $time the time
+     *
      * @return array the array of data
+     *
      * @throws PhpDarkSkyException
      */
     private function callApi(?string $time = null) : array
@@ -215,14 +245,16 @@ final class PhpDarkSky implements PhpDarkSkyConstants
         $queryString = $this->getQueryString();
         $parameters = $queryString === '' ? '' : '?' . $queryString;
 
-        $client = new Client([
-            'base_uri'  => $this->getUrl(),
-            'timeout'   => self::TIMEOUT,
-            // This will bypass the ssl cert check, do not turn this on in production
-            'verify'    => !PHP_DARK_SKY_BYPASS_SSL
-        ]);
+        $client = new Client(
+            [
+                'base_uri'  => self::API_URL,
+                'timeout'   => self::TIMEOUT,
+                // This will bypass the ssl cert check, do not turn this on in production
+                'verify'    => !PHP_DARK_SKY_BYPASS_SSL
+            ]
+        );
 
-        $uri = $this->getUrl() . '/' . $this->getLatitude() . ',' . $this->getLongitude() . $time;
+        $uri = $this->apiKey  . '/' . $this->latitude . ',' . $this->longitude . $time;
         $request = new Request('GET', $uri, [], $parameters);
         try {
             $response = $client->send($request);
@@ -240,8 +272,10 @@ final class PhpDarkSky implements PhpDarkSkyConstants
     }
 
     /**
-     * Filters out any unsuable paramters and returns what's left
+     * Filters out any unusable parameters and returns what's left
+     *
      * @param $parameters
+     *
      * @return array
      */
     private function filterParameters($parameters) : array
@@ -265,82 +299,11 @@ final class PhpDarkSky implements PhpDarkSkyConstants
 
     /**
      * Gets the query string based on the list of parameters
+     *
      * @return string
      */
     private function getQueryString() : string
     {
-        return http_build_query($this->getParameters());
-    }
-
-    /**
-     * Gets the url
-     * @return string
-     */
-    private function getUrl() : string
-    {
-        return $this->url;
-    }
-
-    /**
-     * Gets the latitude
-     * @return float
-     */
-    private function getLatitude() : float
-    {
-        return $this->latitude;
-    }
-
-    /**
-     * Gets the longitude
-     * @return float
-     */
-    private function getLongitude() : float
-    {
-        return $this->longitude;
-    }
-
-    /**
-     * Gets the parameters
-     * @return array
-     */
-    private function getParameters() : array
-    {
-        return $this->parameters;
-    }
-
-    /**
-     * Sets the url
-     * @param string $url
-     */
-    private function setUrl(string $url) : void
-    {
-        $this->url = $url;
-    }
-
-    /**
-     * Sets the latitude
-     * @param float $latitude
-     */
-    private function setLatitude(float $latitude) : void
-    {
-        $this->latitude = $latitude;
-    }
-
-    /**
-     * Sets the longitude
-     * @param float $longitude
-     */
-    private function setLongitude(float $longitude) : void
-    {
-        $this->longitude = $longitude;
-    }
-
-    /**
-     * Sets the parameters
-     * @param array $parameters
-     */
-    private function setParameters(array $parameters) : void
-    {
-        $this->parameters = $parameters;
+        return http_build_query($this->parameters);
     }
 }
